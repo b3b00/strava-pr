@@ -28,7 +28,8 @@ import scala.util.control.NonFatal
 class Strava(
   client: ScravaClient,
   runCache: RunCache,
-  rateLimiter: RateLimiter
+  rateLimiter: RateLimiter,
+  runCacheFile : File
 ) {
   private def fetchRunActivity(id: Int): Option[PersonalDetailedActivity] =
     Some(rateLimiter(client.retrieveActivity(id)))
@@ -55,8 +56,10 @@ class Strava(
           val times = timeStream.data.map(_.asInstanceOf[Int]).toArray
           val distances = distanceStream.data.map(_.asInstanceOf[Float].round).toArray
           val datetime = LocalDateTime.parse(activity.start_date, DateTimeFormatter.ISO_DATE_TIME)
-
-          Some(Run(activity.id, datetime, times, distances))
+          val run = Run(activity.id, datetime, times, distances)
+          runCache.add(run)
+          runCache.save(runCacheFile)
+          Some(run)
         case _ => None
       }
     } catch {
@@ -112,7 +115,8 @@ object Strava {
     new Strava(
       client,
       runCache,
-      rateLimiter
+      rateLimiter,
+      cacheFile
     )
   }
 }
