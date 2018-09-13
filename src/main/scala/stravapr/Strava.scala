@@ -46,6 +46,8 @@ class Strava(
     fetchRunActivities(runIds)
   }
 
+  var activityCounter = 0
+
   def activityToRun(activity: PersonalDetailedActivity): Option[Run] = {
     try {
       val timeDistance: Seq[Streams] = rateLimiter {
@@ -58,7 +60,11 @@ class Strava(
           val datetime = LocalDateTime.parse(activity.start_date, DateTimeFormatter.ISO_DATE_TIME)
           val run = Run(activity.id, datetime, times, distances)
           runCache.add(run)
-          runCache.save(runCacheFile)
+          if (activityCounter % 50 == 0 ) {
+            println("saving run-cache")
+            runCache.save(runCacheFile)
+          }
+          activityCounter = activityCounter + 1
           Some(run)
         case _ => None
       }
