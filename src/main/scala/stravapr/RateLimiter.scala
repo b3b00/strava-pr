@@ -32,8 +32,9 @@ class StravaRateLimiter(isRateLimitExceeded : Throwable => Boolean) extends Rate
       val currentMinute = now.get(Calendar.MINUTE)
       val delayMinute  = 15 - (currentMinute % 15)
       val delay = currentMinute * 6000;
-      var hour = now.get(Calendar.HOUR)
-      println(s"Rate limit exceeded at "+hour+":"+currentMinute+".  Sleeping until next 1/4 hour : for "+delayMinute+" minutes, until "+now.get(Calendar.HOUR)+":"+(currentMinute+delayMinute))
+      val hour = now.get(Calendar.HOUR)
+      var nextMinutes = (currentMinute+delayMinute) % 60
+      println(s"Rate limit exceeded at "+hour+":"+currentMinute+".  Sleeping until next 1/4 hour : for "+delayMinute+" minutes, until "+now.get(Calendar.HOUR)+":"+(nextMinutes))
 
       Thread.sleep(delay)
 
