@@ -37,7 +37,7 @@ object Main {
   }
 
   private object RateLimiters {
-    val stravaRateLimiter: RateLimiter = RateLimiter.byException[RateLimitException]
+    val stravaRateLimiter: RateLimiter = RateLimiter.byExceptionForStrava[RateLimitException]
     val imgurRateLimiter: RateLimiter = RateLimiter.byException[ImgurUploader.RateLimitingExceeded.type]
   }
 

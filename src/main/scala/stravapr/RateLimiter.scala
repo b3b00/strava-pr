@@ -20,6 +20,32 @@ import kiambogo.scrava.models.RateLimitException
 
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import java.util._
+
+class StravaRateLimiter(isRateLimitExceeded : Throwable => Boolean) extends RateLimiter(isRateLimitExceeded) {
+  private def run[T](f: => T, backoff: Duration = 1.minute): T = try {
+    f
+  } catch {
+    case NonFatal(e) if isRateLimitExceeded(e) =>
+// TODO : compute delay til next 1/4h
+      val now = Calendar.getInstance()
+      val currentMinute = now.get(Calendar.MINUTE)
+      val delayMinute  = 15 - (currentMinute % 15)
+      val delay = currentMinute * 6000;
+      var hour = now.get(Calendar.HOUR)
+      println(s"Rate limit exceeded at "+hour+":"+currentMinute+".  Sleeping until next 1/4 hour : for "+delayMinute+" minutes, until "+now.get(Calendar.HOUR)+":"+(currentMinute+delayMinute))
+
+      Thread.sleep(delay)
+
+      run(f,backoff)
+      //run(f, backoff * 2)
+  }
+
+  RateLimitException.getClass
+
+  override def apply[T](f: => T): T =
+    run(f)
+}
 
 class RateLimiter(isRateLimitExceeded: Throwable => Boolean) {
   private def run[T](f: => T, backoff: Duration = 1.minute): T = try {
@@ -44,6 +70,9 @@ object RateLimiter {
 
   def byException[T <: Throwable: ClassTag]: RateLimiter =
     new RateLimiter(exceptionCausedBy[T])
+
+  def byExceptionForStrava[T <: Throwable: ClassTag]: RateLimiter =
+    new StravaRateLimiter(exceptionCausedBy[T])
 
   def exceptionCausedBy[T <: Throwable: ClassTag](exception: Throwable): Boolean = {
     classTag[T].runtimeClass.isInstance(exception) match {
